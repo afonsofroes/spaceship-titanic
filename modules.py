@@ -12,7 +12,7 @@ from sklearn.metrics import accuracy_score
 def get_X_y(data):
     X = data.drop(['Transported'], axis=1)
     y = data['Transported']
-    data.dropna(axis=0, subset=['Cabin'], inplace=True)
+    #data.dropna(axis=0, subset=['Cabin'], inplace=True)
     return X, y
 
 def drop_pointless_columns(X):
@@ -33,9 +33,12 @@ def snake_case_columns(df):
     }, inplace=True)
 
     return df
+def impute_cabin(df):
+    df.cabin = df.cabin.fillna('F/0/P')
+    return df
+
 
 def engineer_cabin_cols(df):
-    cabin_imputer = SimpleImputer(strategy='constant', fill_value='F0P')
     df['cabin_deck'] = df.cabin.str[0]
     df['cabin_num'] = df.cabin.str[2:-2]
     df['cabin_side'] = df.cabin.str[-1]
@@ -83,6 +86,7 @@ def scale_and_ohe(df):
 def process_df(df):
     df = drop_pointless_columns(df)
     df = snake_case_columns(df)
+    df = impute_cabin(df)
     df = engineer_cabin_cols(df)
     df = impute_services(df)
     df = calculate_service_total(df)
@@ -91,3 +95,15 @@ def process_df(df):
     df = impute_cryo_sleep(df)
     df = scale_and_ohe(df)
     return df
+
+def load_data():
+    train_data = pd.read_csv('data/train.csv')
+    test_data = pd.read_csv('data/test.csv')
+    return train_data, test_data
+
+def get_data():
+    train_data, test_data = load_data()
+    train_data = process_df(train_data)
+    proc_test_data = process_df(test_data)
+    X, y = get_X_y(train_data)
+    return X, y, train_data, proc_test_data, test_data
