@@ -49,6 +49,7 @@ def impute_name(df):
 def make_letter_cols(df):
     letters = []
     for name in df.name:
+        name = unidecode(name)
         for letter in name.lower():
             if letter not in letters:
                 letters.append(letter)
