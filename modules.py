@@ -77,10 +77,16 @@ def make_letter_cols(df):
 #     df['len_name'] = df.name.str.len()
 #     return df
 
-def add_len_name_surname_ratio(df):
-    df['len_name'] = df.name.str.len()
-    df['len_surname'] = df.name.str.split().str[0].str.len()
-    df['len_name_surname_ratio'] = df.len_name / df.len_surname
+def add_len_name_surname_diff(df):
+    df['len_name'] = df.name.str.split().str[0].str.len()
+    df['len_surname'] = df.name.str.split().str[1].str.len()
+    df['len_name_surname_diff'] = df.len_name - df.len_surname
+    return df
+
+def add_len_name_fullname_ratio(df):
+    df['len_fullname'] = df.name.str.len()
+    df['len_name'] = df.name.str.split().str[0].str.len()
+    df['len_name_fullname_ratio'] = df.len_name / df.len_fullname
     return df
 
 def impute_cabin(df):
@@ -128,7 +134,7 @@ def impute_cryo_sleep(df):
 
 def scale_and_ohe(df):
     scaler = StandardScaler()
-    df[['age', 'cabin_num', 'len_name_surname_ratio']] = scaler.fit_transform(df[['age', 'cabin_num', 'len_name_surname_ratio']])
+    df[['age', 'cabin_num', 'len_name_surname_diff', 'len_name_fullname_ratio']] = scaler.fit_transform(df[['age', 'cabin_num', 'len_name_surname_diff', 'len_name_fullname_ratio']])
 
     df = pd.get_dummies(df, columns=['cabin_deck', 'cabin_side', 'home_planet', 'destination'])
 
@@ -142,7 +148,8 @@ def process_df(df):
     df = make_letter_cols(df)
 #    df, vectors = vectorize_name(df)
 #    df = add_len_name(df)
-    df = add_len_name_surname_ratio(df)
+    df = add_len_name_surname_diff(df)
+    df = add_len_name_fullname_ratio(df)
     df = impute_cabin(df)
     df = engineer_cabin_cols(df)
     df = impute_services(df)
