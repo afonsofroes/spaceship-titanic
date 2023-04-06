@@ -16,12 +16,14 @@ def get_X_y(data):
     return X, y
 
 def drop_pointless_columns(X):
-    X = X.drop(['PassengerId', 'Name', 'HomePlanet', 'Destination'], axis=1)
+    X = X.drop(['PassengerId', 'Name'], axis=1)
     return X
 
 def snake_case_columns(df):
     df.rename(columns={
     'CryoSleep' : 'cryo_sleep',
+    'HomePlanet' : 'home_planet',
+    'Destination' : 'destination',
     'Cabin' : 'cabin',
     'Age' : 'age',
     'VIP' : 'vip',
@@ -80,7 +82,7 @@ def scale_and_ohe(df):
     scaler = StandardScaler()
     df[['age', 'cabin_num']] = scaler.fit_transform(df[['age', 'cabin_num']])
 
-    df = pd.get_dummies(df, columns=['cabin_deck', 'cabin_side'])
+    df = pd.get_dummies(df, columns=['cabin_deck', 'cabin_side', 'home_planet', 'destination'])
     return df
 
 def process_df(df):
