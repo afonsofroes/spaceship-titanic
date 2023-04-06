@@ -8,6 +8,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.impute import SimpleImputer, KNNImputer
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
+from unidecode import unidecode
+from nltk.stem import WordNetLemmatizer
+from nltk.stem import PorterStemmer
+from sklearn.feature_extraction.text import TfidfVectorizer
+
 
 def get_X_y(data):
     X = data.drop(['Transported'], axis=1)
@@ -15,9 +20,9 @@ def get_X_y(data):
     #data.dropna(axis=0, subset=['Cabin'], inplace=True)
     return X, y
 
-def drop_pointless_columns(X):
-    X = X.drop(['PassengerId', 'Name'], axis=1)
-    return X
+def drop_pointless_columns(df):
+    df = df.drop(['PassengerId'], axis=1)
+    return df
 
 def snake_case_columns(df):
     df.rename(columns={
@@ -31,10 +36,52 @@ def snake_case_columns(df):
     'FoodCourt' : 'food_court',
     'ShoppingMall' : 'shopping_mall',
     'Spa' : 'spa',
-    'VRDeck' : 'vr_deck'
+    'VRDeck' : 'vr_deck',
+    'Name' : 'name'
     }, inplace=True)
 
     return df
+
+def impute_name(df):
+    df.name = df.name.fillna('0')
+    return df
+
+def make_letter_cols(df):
+    letters = []
+    for name in df.name:
+        for letter in name.lower():
+            if letter not in letters:
+                letters.append(letter)
+    for letter in letters:
+        df[letter] = df.name.str.contains(letter)
+    return df
+
+# def vectorize_name(df): # this is super dumb
+#     df.name = df.name.str.lower()
+#     df.name = df.name.apply(lambda x: unidecode(x))
+
+#     stemmer = PorterStemmer()
+#     df.name = df.name.apply(lambda x: stemmer.stem(x))
+
+#     lemmatizer = WordNetLemmatizer()
+#     df.name = df.name.apply(lambda x: lemmatizer.lemmatize(x))
+
+#     vectorizer = TfidfVectorizer()
+#     vectors = vectorizer.fit_transform(df['name'])
+
+#     df.drop(columns='name', inplace=True)
+#     return df, vectors
+
+# def add_len_name(df):
+#     df['len_name'] = df.name.str.len()
+#     return df
+
+def add_len_name_surname_ratio(df):
+    df['len_name'] = df.name.str.len()
+    df['len_surname'] = df.name.str.split().str[0].str.len()
+    df['len_name_surname_ratio'] = df.len_name / df.len_surname
+    return df
+
 def impute_cabin(df):
     df.cabin = df.cabin.fillna('F/0/P')
     return df
@@ -80,14 +127,21 @@ def impute_cryo_sleep(df):
 
 def scale_and_ohe(df):
     scaler = StandardScaler()
-    df[['age', 'cabin_num']] = scaler.fit_transform(df[['age', 'cabin_num']])
+    df[['age', 'cabin_num', 'len_name_surname_ratio']] = scaler.fit_transform(df[['age', 'cabin_num', 'len_name_surname_ratio']])
 
     df = pd.get_dummies(df, columns=['cabin_deck', 'cabin_side', 'home_planet', 'destination'])
+
+    df = df.drop(['name'], axis=1)
     return df
 
 def process_df(df):
     df = drop_pointless_columns(df)
     df = snake_case_columns(df)
+    df = impute_name(df)
+    df = make_letter_cols(df)
+#    df, vectors = vectorize_name(df)
+#    df = add_len_name(df)
+    df = add_len_name_surname_ratio(df)
     df = impute_cabin(df)
     df = engineer_cabin_cols(df)
     df = impute_services(df)
@@ -96,6 +150,8 @@ def process_df(df):
     df = impute_age(df)
     df = impute_cryo_sleep(df)
     df = scale_and_ohe(df)
+
+#    df = pd.concat([df, pd.DataFrame(vectors.toarray())], axis=1)
     return df
 
 def load_data():
