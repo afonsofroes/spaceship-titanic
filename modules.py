@@ -1,25 +1,10 @@
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-from sklearn.compose import make_column_transformer
-from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 from sklearn.impute import SimpleImputer, KNNImputer
-from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score
 from unidecode import unidecode
-from nltk.stem import WordNetLemmatizer
-from nltk.stem import PorterStemmer
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 
-def get_X_y(data):
-    X = data.drop(['Transported'], axis=1)
-    y = data['Transported']
-    #data.dropna(axis=0, subset=['Cabin'], inplace=True)
-    return X, y
-
+# Preproc modules
 def drop_pointless_columns(df):
     df = df.drop(['PassengerId'], axis=1)
     return df
@@ -57,25 +42,9 @@ def make_letter_cols(df):
         df[letter] = df.name.str.contains(letter)
     return df
 
-# def vectorize_name(df): # this is super dumb
-#     df.name = df.name.str.lower()
-#     df.name = df.name.apply(lambda x: unidecode(x))
-
-#     stemmer = PorterStemmer()
-#     df.name = df.name.apply(lambda x: stemmer.stem(x))
-
-#     lemmatizer = WordNetLemmatizer()
-#     df.name = df.name.apply(lambda x: lemmatizer.lemmatize(x))
-
-#     vectorizer = TfidfVectorizer()
-#     vectors = vectorizer.fit_transform(df['name'])
-
-#     df.drop(columns='name', inplace=True)
-#     return df, vectors
-
-# def add_len_name(df):
-#     df['len_name'] = df.name.str.len()
-#     return df
+def add_len_name(df):
+    df['len_name'] = df.name.str.len()
+    return df
 
 def add_len_name_surname_diff(df):
     df['len_name'] = df.name.str.split().str[0].str.len()
@@ -115,8 +84,10 @@ def calculate_service_total(df):
 
 def impute_vip(df):
     df.vip = df.vip.astype(bool)
-    vip_imputer = KNNImputer(n_neighbors=10)
-    df['vip'] = vip_imputer.fit_transform(df[['vip']])
+    media_diff = 1981.0
+    media_diff = df[df.vip == True].service_total.median() - df[df.vip == False].service_total.median()
+    df.vip = df.apply(lambda row: 1 if row.service_total > media_diff and pd.isna(row.vip) else row.vip, axis=1)
+    df.vip.fillna(0, inplace=True)
     return df
 
 def impute_age(df):
@@ -146,8 +117,7 @@ def process_df(df):
     df = snake_case_columns(df)
     df = impute_name(df)
     df = make_letter_cols(df)
-#    df, vectors = vectorize_name(df)
-#    df = add_len_name(df)
+    df = add_len_name(df)
     df = add_len_name_surname_diff(df)
     df = add_len_name_fullname_ratio(df)
     df = impute_cabin(df)
@@ -159,8 +129,14 @@ def process_df(df):
     df = impute_cryo_sleep(df)
     df = scale_and_ohe(df)
 
-#    df = pd.concat([df, pd.DataFrame(vectors.toarray())], axis=1)
     return df
+
+# Data loading
+def get_X_y(data):
+    X = data.drop(['Transported'], axis=1)
+    y = data['Transported']
+    #data.dropna(axis=0, subset=['Cabin'], inplace=True)
+    return X, y
 
 def load_data():
     train_data = pd.read_csv('data/train.csv')
