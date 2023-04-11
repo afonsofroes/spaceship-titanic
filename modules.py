@@ -58,10 +58,19 @@ def add_len_name_fullname_ratio(df):
     df['len_name_fullname_ratio'] = df.len_name / df.len_fullname
     return df
 
+def impute_home_planet(df):
+    planet_imputer = SimpleImputer(strategy='most_frequent')
+    df['home_planet'] = planet_imputer.fit_transform(df[['home_planet']])
+    return df
+
+def impute_destination(df):
+    destination_imputer = SimpleImputer(strategy='most_frequent')
+    df['destination'] = destination_imputer.fit_transform(df[['destination']])
+    return df
+
 def impute_cabin(df):
     df.cabin = df.cabin.fillna('F/0/P')
     return df
-
 
 def engineer_cabin_cols(df):
     df['cabin_deck'] = df.cabin.str[0]
@@ -106,7 +115,7 @@ def impute_cryo_sleep(df):
 def scale_and_ohe(df):
     scaler = StandardScaler()
     df[['age', 'cabin_num', 'len_name_surname_diff', 'len_name_fullname_ratio']] = scaler.fit_transform(df[['age', 'cabin_num', 'len_name_surname_diff', 'len_name_fullname_ratio']])
-
+#, 'service_total', 'room_service', 'food_court', 'shopping_mall', 'spa', 'vr_deck'
     df = pd.get_dummies(df, columns=['cabin_deck', 'cabin_side', 'home_planet', 'destination'])
 
     df = df.drop(['name'], axis=1)
@@ -120,6 +129,8 @@ def process_df(df):
     df = add_len_name(df)
     df = add_len_name_surname_diff(df)
     df = add_len_name_fullname_ratio(df)
+    df = impute_home_planet(df)
+    df = impute_destination(df)
     df = impute_cabin(df)
     df = engineer_cabin_cols(df)
     df = impute_services(df)
