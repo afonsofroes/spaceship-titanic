@@ -91,6 +91,16 @@ def calculate_service_total(df):
     df['service_total'] = df.room_service + df.food_court + df.shopping_mall + df.spa + df.vr_deck
     return df
 
+def engineer_spendings_ratio(df):
+# This lead to worse results, so I removed it from the main function
+
+    df['room_service_ratio'] = df.room_service / df.service_total
+    df['food_court_ratio'] = df.food_court / df.service_total
+    df['shopping_mall_ratio'] = df.shopping_mall / df.service_total
+    df['spa_ratio'] = df.spa / df.service_total
+    df['vr_deck_ratio'] = df.vr_deck / df.service_total
+    return df
+
 def impute_vip(df):
     df.vip = df.vip.astype(bool)
     media_diff = 1981.0
@@ -114,7 +124,16 @@ def impute_cryo_sleep(df):
 
 def scale_and_ohe(df):
     scaler = StandardScaler()
-    df[['age', 'cabin_num', 'len_name_surname_diff', 'len_name_fullname_ratio']] = scaler.fit_transform(df[['age', 'cabin_num', 'len_name_surname_diff', 'len_name_fullname_ratio']])
+    features_to_scale = ['age',
+                         'cabin_num',
+                         'len_name_surname_diff',
+                         'len_name_fullname_ratio',
+                         'room_service_ratio',
+                         'food_court_ratio',
+                         'shopping_mall_ratio',
+                         'spa_ratio',
+                         'vr_deck_ratio']
+    df[features_to_scale] = scaler.fit_transform(df[features_to_scale])
 #, 'service_total', 'room_service', 'food_court', 'shopping_mall', 'spa', 'vr_deck'
     df = pd.get_dummies(df, columns=['cabin_deck', 'cabin_side', 'home_planet', 'destination'])
 
@@ -129,16 +148,20 @@ def process_df(df):
     df = add_len_name(df)
     df = add_len_name_surname_diff(df)
     df = add_len_name_fullname_ratio(df)
-    # df = impute_home_planet(df)
-    # df = impute_destination(df)
+    df = impute_home_planet(df)
+    df = impute_destination(df)
     df = impute_cabin(df)
     df = engineer_cabin_cols(df)
     df = impute_services(df)
     df = calculate_service_total(df)
+    df = engineer_spendings_ratio(df)
     df = impute_vip(df)
     df = impute_age(df)
     df = impute_cryo_sleep(df)
     df = scale_and_ohe(df)
+
+    df.cryo_sleep = df.cryo_sleep.astype(bool)
+    df.vip = df.vip.astype(bool)
 
     return df
 
